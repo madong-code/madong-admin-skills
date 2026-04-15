@@ -425,6 +425,167 @@ export const QuestionService = {
 }
 ```
 
+## Custom Form Component (自定义表单)
+
+When you need custom form logic (e.g., rich text editor with upload, conditional fields), disable built-in CRUD forms and use custom form component:
+
+### 1. Disable Built-in Forms in schemas/index.tsx
+
+```typescript
+export const crudSchema = (): CrudSchema => {
+  return {
+    // ... other config
+    useCrud: true,
+    hasAdd: false,      // Disable built-in add
+    hasEdit: false,     // Disable built-in edit
+    hasView: false,     // Disable built-in view
+    hasRemove: true,    // Keep built-in delete
+    formSchema: {},     // Empty form schema
+    // ...
+  }
+}
+```
+
+### 2. Create Custom Form Component (form.vue)
+
+```vue
+<template>
+  <Dialog>
+    <BasicForm />
+  </Dialog>
+</template>
+
+<script setup lang="tsx">
+import { FormItemSchema, useForm } from "@/components/form";
+import { useDialog } from "@/components/dialog";
+import { CrudMethods } from "@/components/crud";
+import { ref, nextTick } from "vue";
+import { ElMessage } from "element-plus";
+import { $t } from "@/locales";
+
+const record = ref<any>({});
+const crudApi = ref<CrudMethods>();
+const formType = ref("add");
+
+// Define form schema with JSON
+const schema: FormItemSchema[] = [
+  {
+    label: $t('{i18n_prefix}.{model}.form.title'),
+    prop: "title",
+    component: "Input",
+    colSpan: 24,
+    rules: [{ required: true, message: "请输入标题" }],
+  },
+  {
+    label: $t('{i18n_prefix}.{model}.form.content'),
+    prop: "content",
+    component: "Editor",  // Rich text editor
+    colSpan: 24,
+    componentProps: {
+      uploadConfig: {
+        server: `${import.meta.env.VITE_API_URL}/files/common/wangeditor`,
+        meta: { sub_dir: "content" },
+      },
+    },
+  },
+];
+
+const [BasicForm, formApi] = useForm({
+  labelPosition: "right",
+  labelWidth: "100px",
+  schema: schema,
+});
+
+const [Dialog, dialogApi] = useDialog({
+  title: $t('{i18n_prefix}.{model}.dialog_title'),
+  width: "80%",
+  dialogType: "drawer",
+  async onConfirm() {
+    formApi.validate().then(async () => {
+      const values = await formApi.getValues();
+      if (formType.value === "add") {
+        await {Model}Service.create(values);
+        crudApi?.value?.refreshCreate();
+        ElMessage.success("新增成功");
+        dialogApi.close();
+      } else if (formType.value === "edit") {
+        await {Model}Service.update(record.value.id, values);
+        crudApi?.value?.refreshCreate();
+        ElMessage.success("更新成功");
+        dialogApi.close();
+      }
+    });
+  },
+});
+
+defineExpose({
+  async show({ data, getCrudApi, type }: any) {
+    record.value = data;
+    formType.value = type || "add";
+    crudApi.value = getCrudApi();
+    dialogApi.open();
+    nextTick(() => {
+      formApi.setValues(record.value);
+    });
+  },
+});
+</script>
+```
+
+### 3. Use Custom Form in index.vue
+
+```vue
+<template>
+  <div class="{model}-page art-full-height">
+    <BasicCrud />
+    <Form ref="formRef" />
+  </div>
+</template>
+
+<script setup lang="tsx">
+import { useCrud } from "@/components/crud";
+import { crudSchema } from "./schemas";
+import Form from "./form.vue";
+
+const formRef = ref<any>(null);
+
+const [BasicCrud, crudApi] = useCrud({
+  ...crudSchema(),
+  toolbarActions: [
+    {
+      label: "新增",
+      type: "primary",
+      auth: "{permission}:create",
+      dialogRef: formRef,  // Reference to custom form
+      dialogParams() {
+        return {
+          data: {},
+          getCrudApi() { return crudApi; },
+          type: "add",
+        };
+      },
+    },
+  ],
+  tableActions: [
+    {
+      label: "编辑",
+      type: "primary",
+      link: true,
+      auth: "{permission}:update",
+      dialogRef: formRef,  // Reference to custom form
+      dialogParams(record: any) {
+        return {
+          data: record,
+          getCrudApi() { return crudApi; },
+          type: "edit",
+        };
+      },
+    },
+  ],
+});
+</script>
+```
+
 ## Column Component Types
 
 | Component | Description |
@@ -462,3 +623,11 @@ When generating frontend:
 - [ ] Use proper i18n key pattern based on target
 - [ ] Use proper DictEnum codes
 - [ ] Configure proper permissions
+
+### Custom Form Checklist (when using custom form)
+- [ ] Set `hasAdd: false, hasEdit: false, hasView: false` in schemas
+- [ ] Set `formSchema: {}` in schemas
+- [ ] Create form.vue with `useForm` + `useDialog`
+- [ ] Import custom Form in index.vue
+- [ ] Pass `dialogRef: formRef` in toolbarActions/tableActions
+- [ ] Add required i18n keys: `add_title`, `edit_title`, `detail_title`, `validate.*`, `tips.*`

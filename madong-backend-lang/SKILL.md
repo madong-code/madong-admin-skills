@@ -1,9 +1,9 @@
 ---
-name: madong-i18n-backend
-description: Generate backend i18n translation files for madong plugin module. Creates PHP translation files with proper key patterns for both zh_CN and en languages.
+name: madong-backend-lang
+description: Generate backend lang translation files for madong plugin module. Creates PHP translation files with proper key patterns for both zh_CN and en languages.
 ---
 
-# Step 8: Generate Backend i18n
+# Step 8: Generate Backend Lang
 
 Generate PHP translation files for plugin module backend.
 
@@ -16,7 +16,12 @@ plugin/{plugin}/resource/translations/en/{module}.php
 
 ## Translation Key Pattern
 
-Backend i18n uses dot notation: `{module}.{model}.*`
+Backend i18n uses nested array structure: `{module}.{model}.*`
+
+**Important**:
+- PHP file returns nested array structure (NOT dot notation in keys)
+- Key prefix `{module}.{model}` is represented as nested array `'{model}' => [...]`
+- Do NOT include plugin name in keys
 
 ## Translation File Template (zh_CN)
 
@@ -39,7 +44,7 @@ return [
         'save_fail'      => '保存失败',
     ],
 
-    // {Model} 相关
+    // {Model} 相关 - 注意：这里是嵌套数组，不是 'rich_text.template.title'
     '{model}' => [
         'title'      => '{Model}管理',
         'list'       => '{Model}列表',
@@ -117,7 +122,7 @@ return [
         'save_fail'      => 'Save failed',
     ],
 
-    // {Model} Related
+    // {Model} Related - Note: nested array structure
     '{model}' => [
         'title'      => '{Model} Management',
         'list'       => '{Model} List',
@@ -177,28 +182,110 @@ return [
 ## Usage in Backend Code
 
 ```php
-// Using trans() helper
-echo trans('{plugin}.{module}.{model}.title');
+// Using trans() helper - key format: {plugin}.{module}.{model}.key
+// Plugin name is added by translation system based on file location
 
-// Using __() helper (if configured)
-echo __('{plugin}.{module}.{model}.field.name');
+echo trans('{plugin}.{module}.{model}.title');
+echo trans('{plugin}.{module}.{model}.field.name');
+
+// Example for rich_text template in official plugin:
+echo trans('official.rich_text.template.title');
+echo trans('official.rich_text.template.field.name');
 ```
 
 ## Auto-generation Checklist
 
 When generating backend i18n:
 - [ ] Create `resource/translations/` directory if not exists
-- [ ] Generate `zh_CN/{module}.php` with complete keys
-- [ ] Generate `en/{module}.php` with complete keys
-- [ ] Ensure key structure matches frontend i18n pattern
-- [ ] Add placeholder comments for missing translations
+- [ ] Generate `zh_CN/{module}.php` with nested array structure
+- [ ] Generate `en/{module}.php` with nested array structure
+- [ ] Use `'{model}' => [...]` as top-level key (NOT dot notation)
+- [ ] Do NOT include plugin name in PHP array keys
+- [ ] Add all field labels, validation messages, and tips
 
 ## Key Naming Convention
 
-| Type | Key Pattern | Example |
-|------|-------------|---------|
-| Title | `{module}.{model}.title` | `ask.question.title` |
-| Field | `{module}.{model}.field.{name}` | `ask.question.field.name` |
-| Status | `{module}.{model}.status.{value}` | `ask.question.status.normal` |
-| Search | `{module}.{model}.search.{name}` | `ask.question.search.name` |
-| Tips | `{module}.{model}.tips.{action}` | `ask.question.tips.add_success` |
+| Type | PHP Array Structure | Full Key Used in Code | Example |
+|------|---------------------|----------------------|---------|
+| Title | `'{model}' => ['title' => '...']` | `trans('{plugin}.{module}.{model}.title')` | `official.rich_text.template.title` |
+| Field | `'{model}' => ['field' => ['name' => '...']]` | `trans('{plugin}.{module}.{model}.field.name')` | `official.rich_text.template.field.name` |
+| Status | `'{model}' => ['status' => ['normal' => '...']]` | `trans('{plugin}.{module}.{model}.status.normal')` | `official.rich_text.template.status.normal` |
+| Search | `'{model}' => ['search' => ['name' => '...']]` | `trans('{plugin}.{module}.{model}.search.name')` | `official.rich_text.template.search.name` |
+| Tips | `'{model}' => ['tips' => ['add_success' => '...']]` | `trans('{plugin}.{module}.{model}.tips.add_success')` | `official.rich_text.template.tips.add_success` |
+
+## Common Mistakes to Avoid
+
+1. ❌ **Wrong**: Using dot notation in PHP array keys
+   ```php
+   return [
+       'rich_text.template.title' => '富文本模板管理',
+   ];
+   ```
+
+2. ✅ **Correct**: Using nested array structure
+   ```php
+   return [
+       'template' => [
+           'title' => '富文本模板管理',
+       ],
+   ];
+   ```
+
+3. ❌ **Wrong**: Including plugin name in keys
+   ```php
+   return [
+       'official' => [
+           'rich_text' => [
+               'template' => [...]
+           ]
+       ]
+   ];
+   ```
+
+4. ✅ **Correct**: Only module and model in keys
+   ```php
+   return [
+       'template' => [...]  // {model} as key
+   ];
+   // Full key: official.rich_text.template.xxx
+   // Plugin and module added by translation system
+   ```
+
+## Example: rich_text/template for official plugin
+
+File: `plugin/official/resource/translations/zh_CN/rich_text.php`
+
+```php
+<?php
+
+return [
+    'common' => [
+        'success' => '操作成功',
+        'fail' => '操作失败',
+    ],
+    
+    // 'template' is the {model} name
+    'template' => [
+        'title' => '模板管理',
+        'field' => [
+            'id' => 'ID',
+            'title' => '标题',
+            'content' => '内容',
+            'sort' => '排序',
+        ],
+        'search' => [
+            'title' => '标题',
+        ],
+        'tips' => [
+            'add_success' => '添加模板成功',
+        ],
+    ],
+];
+```
+
+Usage:
+```php
+trans('official.rich_text.template.title');      // 模板管理
+trans('official.rich_text.template.field.title'); // 标题
+trans('official.rich_text.template.tips.add_success'); // 添加模板成功
+```

@@ -6,26 +6,33 @@
 
 ```
 skills/
-├── README.md           # 本文件
-├── curd/               # CRUD 生成主技能（整合所有子技能）
-├── 02-migration/       # 数据库迁移
-├── 03-model/           # Eloquent 模型
-├── 04-controller/      # AdminAPI 控制器
-├── 04a-api-controller/ # API 控制器
-├── 04-validate/        # 验证器
-├── 05-service/         # 服务层
-├── 05a-api-service/     # API 服务层
-├── 06-dao/             # 数据访问层
-├── 07-frontend/        # Vue 前端页面
-├── 10-event/            # 事件
-└── 11-listener/         # 监听器
+├── README.md                     # 本文件
+├── madong-backend-gen-crud/      # CRUD 生成主技能（整合所有子技能）
+├── madong-backend-gen-parse/     # 表解析
+├── madong-backend-gen-migrate/   # 数据库迁移
+├── madong-backend-gen-model/     # Eloquent 模型
+├── madong-backend-gen-controller/ # AdminAPI 控制器
+├── madong-backend-gen-api-controller/ # API 控制器
+├── madong-backend-gen-validate/  # 验证器
+├── madong-backend-gen-service/   # 服务层
+├── madong-backend-gen-api-service/ # API 服务层
+├── madong-backend-gen-dao/       # 数据访问层
+├── madong-backend-gen-schema/    # Schema DTO
+├── madong-backend-route/         # 路由配置
+├── madong-backend-lang/          # 后端国际化
+├── madong-backend-logger/        # 后端日志集成
+├── madong-frontend-admin-gen/    # Admin 前端生成
+├── madong-frontend-admin-i18n/   # Admin 前端国际化
+├── madong-backend-tester/        # 后端测试
+└── madong-backend-gen-event/     # 事件
+└── madong-backend-gen-listener/  # 监听器
 ```
 
 ## 快速开始
 
 ### 生成完整 CRUD
 
-使用 `curd` 技能可以一键生成完整的 CRUD 模块：
+使用 `madong-backend-gen-crud` 技能可以一键生成完整的 CRUD 模块：
 
 ```
 create CRUD for articles app
