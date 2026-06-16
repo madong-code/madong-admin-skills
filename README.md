@@ -6,6 +6,10 @@
 
 ### 同步到 AI 编辑器
 
+提供两个等价的脚本：Windows 用 `sync.ps1`，macOS / Linux 用 `sync.sh`。
+
+**Windows（PowerShell）**
+
 ```powershell
 # 一键同步全部（CodeBuddy + Cursor + Trae + Copilot）
 powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1
@@ -16,6 +20,27 @@ powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target cursor
 powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target trae
 powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target copilot
 ```
+
+**macOS / Linux（Bash）**
+
+```bash
+# 首次使用赋予执行权限（可选）
+chmod +x madong-skills/sync.sh
+
+# 一键同步全部（CodeBuddy + Cursor + Trae + Copilot）
+bash madong-skills/sync.sh
+
+# 只同步你用的编辑器（推荐）
+bash madong-skills/sync.sh --target codebuddy
+bash madong-skills/sync.sh --target cursor
+bash madong-skills/sync.sh --target trae
+bash madong-skills/sync.sh --target copilot
+
+# 多个编辑器用逗号分隔
+bash madong-skills/sync.sh --target codebuddy,cursor
+```
+
+> 依赖：Bash 4+、`find`、`awk`、`sed`（macOS / Linux 默认自带）。
 
 ### 生成完整 CRUD
 
@@ -47,7 +72,8 @@ generate schema for article
 ```
 madong-skills/
 ├── README.md                     # 本文件
-├── sync.ps1                       # 跨编辑器同步脚本
+├── sync.ps1                       # 跨编辑器同步脚本 (Windows)
+├── sync.sh                        # 跨编辑器同步脚本 (macOS / Linux)
 ├── backend/                       # 后端 34 项（代码生成 + 项目规范）
 │   ├── gen-crud/                 # [生成] CRUD 总编排
 │   ├── gen-parse/                # [生成] 表解析
@@ -147,7 +173,7 @@ madong-skills/
 
 ## 同步目标
 
-执行 `sync.ps1` 后，技能文件被分发到：
+执行 `sync.ps1`（Windows）或 `sync.sh`（macOS / Linux）后，技能文件被分发到：
 
 | 编辑器 | 位置 | 格式 |
 |--------|------|------|
