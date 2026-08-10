@@ -1,48 +1,41 @@
 ---
-name: madong-backend-middleware
-description: 中间件规范，支持全局中间件、路由中间件、控制器注解中间件
+name: backend-middleware
+description: 后端中间件规范（Webman 中间件，鉴权/日志/跨域，后缀 Middleware）
 globs:
-  - "app/**/middleware/**/*.php"
+  - "backend/app/middleware/**/*.php"
+  - "backend/app/adminapi/middleware/**/*.php"
 ---
 
-## 文件位置
+# 后端中间件规范
 
-```
-app/{app}/middleware/{Name}Middleware.php
-```
+## 定位
+- 目录：`app/middleware/`（全局）、`app/adminapi/middleware/`（后台专用）
+- 类大驼峰 + `Middleware` 后缀：`AdminAuthMiddleware`、`OperateLogMiddleware`
+- Webman 中间件实现 `process()` 方法，签名：`process(Request $request, callable $handler): Response`
 
-## 中间件类型
+## 约定
+- 鉴权中间件负责解析 JWT（来自 `core/security/jwt`），写入 `request->admin` / `request->tenant` 上下文。
+- 操作日志中间件（`OperateLogMiddleware`）记录后台关键操作。
+- CORS/跨域中间件在全局 `config/middleware.php` 注册。
+- 中间件不写业务，只做「拦截 / 注入上下文 / 改写响应」。
 
-| 类型 | 注册方式 | 示例 |
-|------|---------|------|
-| 全局 | `config/middleware.php` | AccessTokenMiddleware |
-| 路由 | Route::group 第二个参数 | PermissionMiddleware |
-| 注解 | `#[Middleware]` | OperationMiddleware |
-
-## 代码模板
-
+## 写法要点
 ```php
 <?php
-
 namespace app\adminapi\middleware;
 
 use Webman\Http\Request;
 use Webman\Http\Response;
+use Webman\MiddlewareInterface;
+use Webman\Http\Response as HttpResponse;
 
-class {Name}Middleware
+class AdminAuthMiddleware implements MiddlewareInterface
 {
-    public function process(Request $request, callable $next): Response
+    public function process(Request $request, callable $handler): Response
     {
-        // 前置处理
-        $response = $next($request);
-        // 后置处理
-        return $response;
+        // 解析 token、校验权限码 ...
+        return $handler($request);
     }
 }
 ```
-
-## 检查清单
-
-- [ ] 中间件注册方式是否正确
-- [ ] 是否处理了异常情况
-- [ ] 是否返回正确的 Response 对象
+- 在 `config/middleware.php` 或路由 group 里挂载。

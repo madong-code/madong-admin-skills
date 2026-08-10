@@ -1,65 +1,42 @@
 ---
-name: madong-cross-api-convention
-description: 前后端 API 对接规范，响应格式/错误码/查询操作符/分页
+name: cross-api-convention
+description: 前后端 API 对接规范（响应格式、分页、错误码、权限码、SSE）
 globs:
-  - "**/*.php"
-  - "**/*.ts"
+  - "backend/app/adminapi/controller/**/*.php"
+  - "template/admin/src/api/**/*.ts"
+  - "template/web/src/api/**/*.ts"
 ---
 
-## 响应格式
+# 前后端 API 对接规范
 
-### 成功响应
+## 响应格式（统一）
+后端 `core\foundation\tool\Json`：
 ```json
-{
-  "code": 0,
-  "msg": "ok",
-  "data": { "items": [...], "total": 100 }
-}
+{ "code": 0, "msg": "ok", "data": { } }
 ```
+- `code = 0` 成功，非 0 业务错误；`msg` 提示；`data` 业务数据。
+- 前端请求客户端统一拦截 `code !== 0` 弹错。
 
-### 失败响应
+## 分页
 ```json
-{
-  "code": -1,
-  "msg": "操作失败",
-  "data": null
-}
+{ "code": 0, "data": { "items": [], "total": 100, "page_no": 1, "page_size": 20 } }
 ```
+- 字段全部 snake_case：`items` / `total` / `page_no` / `page_size`。
 
-## 错误码
+## 路由与权限码
+- 路由前缀：`/adminapi/*`（后台）、`/api/*`（前台）、`/install/*`。
+- 路由 code：`{app}.{module}.{action}`，如 `adminapi.menu.update`。
+- 权限码：`{module}:{model}:{action}`，如 `system:menu:update`，前后端共用，前端控制按钮显隐、后端中间件校验。
 
-| code | 说明 |
-|------|------|
-| 0 | 成功 |
-| -1 | 业务失败 |
-| 400 | 参数错误 |
-| 401 | 未认证 |
-| 403 | 无权限 |
-| 404 | 资源不存在 |
-| 500 | 服务器错误 |
+## 入参
+- 创建/更新走 `BaseValidate` 场景校验，字段 snake_case。
+- 文件上传走 `core/io/upload`，返回 URL 或相对路径。
 
-## 查询操作符
+## 实时通信（SSE）
+- 需服务端推送的接口用 SSE（`text/event-stream`），前端用 EventSource 或 Vben 的 SSE 封装消费。
+- 典型场景：安装进度、队列任务进度、通知。
 
-| 操作符 | 说明 | 示例 |
-|--------|------|------|
-| `LIKE_` | 模糊匹配 | `LIKE_name=菜单` |
-| `EQ_` | 精确匹配 | `EQ_status=1` |
-| `GT_` | 大于 | `GT_sort=10` |
-| `LT_` | 小于 | `LT_sort=100` |
-| `BETWEEN_` | 范围 | `BETWEEN_created_at=1700000000,1800000000` |
-
-## 分页参数
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| page | 1 | 页码 |
-| limit | 15 | 每页条数 |
-| field | '' | 排序字段 |
-| order | 'desc' | 排序方向 |
-
-## 检查清单
-
-- [ ] 响应格式是否为 {code, msg, data}
-- [ ] 成功时 code 是否为 0
-- [ ] 列表是否返回 items 和 total
-- [ ] 查询参数是否使用标准操作符
+## 前端对接（admin / web）
+- admin：见 `frontend-admin`，用 `src/core/request` + `useCrud`。
+- web：见 `frontend-web`，用 `$fetch` + `composables`。
+- API 函数命名小驼峰，类型放 `src/types/`，遵循 `frontend-shared`。

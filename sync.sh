@@ -1,207 +1,145 @@
 #!/usr/bin/env bash
+#============================================================
+# Madong SaaS Skills 跨编辑器同步脚本（MDAdmin 标准版）
+# 将 skills/ 下所有 SKILL.md 分发到各 AI 编辑器格式。
 #
-# Madong Skills 跨编辑器同步脚本 (macOS / Linux 版)
-# 将 SKILL.md 分发到各编辑器格式
-#
-# 用法:
-#   # 同步全部 (CodeBuddy + Cursor + Trae + Copilot)
-#   bash madong-skills/sync.sh
-#
-#   # 只同步指定编辑器 (多个用逗号分隔)
-#   bash madong-skills/sync.sh --target codebuddy
-#   bash madong-skills/sync.sh --target cursor
-#   bash madong-skills/sync.sh --target trae
-#   bash madong-skills/sync.sh --target copilot
-#   bash madong-skills/sync.sh --target codebuddy,cursor
-#
-# 可选值: codebuddy, cursor, trae, copilot
-
+# 用法：
+#   ./skills/sync.sh                # 同步全部（默认）
+#   ./skills/sync.sh codebuddy      # 只同步 CodeBuddy
+#   ./skills/sync.sh trae           # 只同步 Trae（Skills + Rules）
+#   ./skills/sync.sh codebuddy cursor
+#============================================================
 set -euo pipefail
 
-# ----- 颜色 -----
-if [[ -t 1 ]]; then
-    C_GREEN='\033[0;32m'; C_GRAY='\033[0;90m'; C_CYAN='\033[0;36m'; C_YELLOW='\033[0;33m'; C_RESET='\033[0m'
-else
-    C_GREEN=''; C_GRAY=''; C_CYAN=''; C_YELLOW=''; C_RESET=''
-fi
-
-# ----- 路径 -----
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SRC_DIR/.." && pwd)"
+ROOT_DIR="$(dirname "$SRC_DIR")"
 
-# ----- 解析参数 -----
-target_arg=""
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --target|-t)
-            target_arg="$2"; shift 2 ;;
-        --target=*)
-            target_arg="${1#*=}"; shift ;;
-        *)
-            echo "未知参数: $1" >&2; exit 1 ;;
-    esac
-done
-
-declare -a TARGETS
-if [[ -z "$target_arg" ]]; then
-    TARGETS=(codebuddy cursor trae copilot)
-    LABEL="all"
+# 目标解析
+if [ $# -eq 0 ]; then
+  TARGETS=("codebuddy" "cursor" "trae" "copilot")
+  LABEL="all"
 else
-    IFS=',' read -ra RAW <<< "$target_arg"
-    TARGETS=()
-    for t in "${RAW[@]}"; do
-        t="$(echo "$t" | tr '[:upper:]' '[:lower:]' | xargs)"
-        [[ -n "$t" ]] && TARGETS+=("$t")
-    done
-    LABEL="$(IFS=', '; echo "${TARGETS[*]}")"
+  TARGETS=("$@")
+  LABEL="$*"
 fi
 
-has_target() {
-    local needle="$1"
-    for t in "${TARGETS[@]}"; do
-        [[ "$t" == "$needle" ]] && return 0
-    done
-    return 1
-}
+# 收集所有 SKILL.md（排除 node_modules / .git）
+mapfile -t SKILLS < <(find "$SRC_DIR" -type f -name 'SKILL.md' \
+  | grep -vE 'node_modules|/\.git' | sort)
 
-# ----- 收集 SKILL.md (排除 node_modules / .git) -----
-declare -a SKILLS
-while IFS= read -r f; do
-    SKILLS+=("$f")
-done < <(find "$SRC_DIR" -type f -name 'SKILL.md' \
-            -not -path '*/node_modules/*' -not -path '*/.git/*' | sort)
+TOTAL=${#SKILLS[@]}
+echo -e "\033[0;32mFound $TOTAL skill files\033[0m"
+echo -e "\033[0;90mTargets: $LABEL\033[0m"
+echo
 
-echo -e "${C_GREEN}Found ${#SKILLS[@]} skill files${C_RESET}"
-echo -e "${C_GRAY}Targets: $LABEL${C_RESET}"
-echo ""
-
-# ----- 辅助: 由 SKILL.md 路径生成技能名称 -----
-# backend/gen-crud/SKILL.md -> backend-gen-crud
 skill_name() {
-    local full="$1"
-    local rel="${full#"$SRC_DIR"/}"
-    rel="${rel//\//-}"
-    rel="${rel%-SKILL.md}"
-    echo "$rel"
+  local f="$1"
+  local rel="${f#$SRC_DIR/}"
+  rel="${rel//\\//}"
+  rel="${rel%-SKILL.md}"
+  echo "${rel//\//-}"
 }
 
-print_summary() {
-    printf "${C_CYAN}%-14s: %s (%s %s)${C_RESET}\n" "$1" "$2" "$3" "$4"
-}
+# 检查目标
+has() { printf '%s\n' "${TARGETS[@]}" | grep -qx "$1"; }
 
-# ===== 1. CodeBuddy =====
-if has_target codebuddy; then
-    CB_DIR="$ROOT/.codebuddy/skills"
-    for skill in "${SKILLS[@]}"; do
-        name="$(skill_name "$skill")"
-        mkdir -p "$CB_DIR/$name"
-        cp -f "$skill" "$CB_DIR/$name/SKILL.md"
-        echo -e "  ${C_CYAN}[CodeBuddy] $name/SKILL.md${C_RESET}"
-    done
-    echo ""
+#============================================================
+# 1. CodeBuddy
+#============================================================
+if has codebuddy; then
+  CB_DIR="$ROOT_DIR/.codebuddy/skills"
+  mkdir -p "$CB_DIR"
+  for s in "${SKILLS[@]}"; do
+    name="$(skill_name "$s")"
+    mkdir -p "$CB_DIR/$name"
+    cp "$s" "$CB_DIR/$name/SKILL.md"
+    echo -e "  \033[0;36m[CodeBuddy]\033[0m $name/SKILL.md"
+  done
+  echo
 fi
 
-# ===== 2. Cursor =====
-if has_target cursor; then
-    CURSOR_DIR="$ROOT/.cursor/rules"
-    for skill in "${SKILLS[@]}"; do
-        name="$(skill_name "$skill")"
-        mkdir -p "$CURSOR_DIR/$name"
-        cp -f "$skill" "$CURSOR_DIR/$name/rule.mdc"
-        echo -e "  ${C_CYAN}[Cursor] $name/rule.mdc${C_RESET}"
-    done
-    echo ""
+#============================================================
+# 2. Cursor
+#============================================================
+if has cursor; then
+  CUR_DIR="$ROOT_DIR/.cursor/rules"
+  mkdir -p "$CUR_DIR"
+  for s in "${SKILLS[@]}"; do
+    name="$(skill_name "$s")"
+    mkdir -p "$CUR_DIR/$name"
+    cp "$s" "$CUR_DIR/$name/rule.mdc"
+    echo -e "  \033[0;36m[Cursor]\033[0m $name/rule.mdc"
+  done
+  echo
 fi
 
-# ===== 3. Trae (Rules + Skills) =====
-if has_target trae; then
-    # --- Trae Rules: 转换 frontmatter ---
-    TRAE_DIR="$ROOT/.trae/rules"
-    for skill in "${SKILLS[@]}"; do
-        name="$(skill_name "$skill")"
-        mkdir -p "$TRAE_DIR/$name"
-        dest="$TRAE_DIR/$name/rule.md"
-        # 用 awk 解析 frontmatter 并重写为 Trae Rules 格式
-        if head -n 1 "$skill" | grep -q '^---'; then
-            awk '
-                BEGIN { in_fm=0; fm_done=0; desc=""; globs=""; }
-                NR==1 && $0 ~ /^---[[:space:]]*$/ { in_fm=1; next }
-                in_fm && $0 ~ /^---[[:space:]]*$/ { in_fm=0; fm_done=1; next }
-                in_fm {
-                    line=$0
-                    if (match(line, /^description:[[:space:]]*/)) {
-                        desc=substr(line, RLENGTH+1)
-                    }
-                    if (match(line, /^[[:space:]]+-[[:space:]]+"[^"]*"/)) {
-                        s=line
-                        sub(/^[[:space:]]+-[[:space:]]+"/, "", s)
-                        sub(/".*$/, "", s)
-                        if (globs == "") globs=s; else globs=globs ", " s
-                    }
-                    next
-                }
-                fm_done { body = body $0 "\n" }
-                END {
-                    printf "---\n"
-                    printf "alwaysApply: false\n"
-                    if (desc != "") printf "description: %s\n", desc
-                    if (globs != "") printf "globs: \"%s\"\n", globs
-                    printf "---\n"
-                    printf "%s", body
-                }
-            ' "$skill" > "$dest"
-        else
-            cp -f "$skill" "$dest"
-        fi
-        echo -e "  ${C_CYAN}[Trae Rules] $name/rule.md${C_RESET}"
-    done
-    # --- Trae Skills: 直接复制 ---
-    TRAE_SKILLS_DIR="$ROOT/.agents/skills"
-    for skill in "${SKILLS[@]}"; do
-        name="$(skill_name "$skill")"
-        mkdir -p "$TRAE_SKILLS_DIR/$name"
-        cp -f "$skill" "$TRAE_SKILLS_DIR/$name/SKILL.md"
-        echo -e "  ${C_CYAN}[Trae Skills] $name/SKILL.md${C_RESET}"
-    done
-    echo ""
-fi
+#============================================================
+# 3. Trae (Rules + Skills)
+#============================================================
+if has trae; then
+  TRAE_RULES="$ROOT_DIR/.trae/rules"
+  TRAE_SKILLS="$ROOT_DIR/.agents/skills"
+  mkdir -p "$TRAE_RULES" "$TRAE_SKILLS"
 
-# ===== 4. Copilot: 聚合为单文件 =====
-if has_target copilot; then
-    COPILOT_DIR="$ROOT/.github"
-    mkdir -p "$COPILOT_DIR"
-    COPILOT_DEST="$COPILOT_DIR/copilot-instructions.md"
+  for s in "${SKILLS[@]}"; do
+    name="$(skill_name "$s")"
+
+    # 3a Rules
+    mkdir -p "$TRAE_RULES/$name"
+    desc="$(grep -m1 '^description:' "$s" | sed 's/^description:[[:space:]]*//')"
+    globs_raw="$(grep -E '^\s+- "' "$s" | sed -E 's/^\s+- "(.*)"/\1/' | paste -sd ', ' -)"
     {
-        echo "# Madong Skills Instructions"
-        echo ""
-        for skill in "${SKILLS[@]}"; do
-            rel="${skill#"$SRC_DIR"/}"
-            category="${rel%%/*}"
-            name="$(skill_name "$skill")"
-            skill_short="${name##*-}"
-            echo "---"
-            echo ""
-            echo "## $category / $skill_short"
-            # 去掉 frontmatter 后输出正文
-            awk '
-                BEGIN { in_fm=0; done=0 }
-                NR==1 && $0 ~ /^---[[:space:]]*$/ { in_fm=1; next }
-                in_fm && $0 ~ /^---[[:space:]]*$/ { in_fm=0; done=1; next }
-                in_fm { next }
-                { print }
-            ' "$skill" | sed -e 's/[[:space:]]*$//'
-            echo ""
-        done
-    } > "$COPILOT_DEST"
-    echo -e "  ${C_CYAN}[Copilot] copilot-instructions.md${C_RESET}"
-    echo ""
+      echo "---"
+      echo "alwaysApply: false"
+      [ -n "$desc" ] && echo "description: $desc"
+      [ -n "$globs_raw" ] && echo "globs: \"$globs_raw\""
+      echo "---"
+      tail -n +1 "$s" | awk 'BEGIN{p=0} /^---$/{if(++c==2){p=1;next}} p'
+    } > "$TRAE_RULES/$name/rule.md"
+    echo -e "  \033[0;36m[Trae Rules]\033[0m $name/rule.md"
+
+    # 3b Skills
+    mkdir -p "$TRAE_SKILLS/$name"
+    cp "$s" "$TRAE_SKILLS/$name/SKILL.md"
+    echo -e "  \033[0;36m[Trae Skills]\033[0m $name/SKILL.md"
+  done
+  echo
 fi
 
-# ===== .gitignore (不存在则生成) =====
-GITIGNORE="$SRC_DIR/.gitignore"
-if [[ ! -f "$GITIGNORE" ]]; then
-    cat > "$GITIGNORE" <<'EOF'
-# Auto-generated by sync.sh
+#============================================================
+# 4. Copilot
+#============================================================
+if has copilot; then
+  GH_DIR="$ROOT_DIR/.github"
+  mkdir -p "$GH_DIR"
+  {
+    echo "# Madong SaaS Project Instructions"
+    echo
+    echo "Project-wide coding rules and conventions for the Madong SaaS (MDAdmin standard) project."
+    echo
+    for s in "${SKILLS[@]}"; do
+      rel="${s#$SRC_DIR/}"
+      category="$(echo "$rel" | cut -d/ -f1)"
+      skillname="$(skill_name "$s" | awk -F- '{print $NF}')"
+      echo "---"
+      echo
+      echo "## $category / $skillname"
+      echo
+      awk 'BEGIN{p=0} /^---$/{if(++c==2){p=1;next}} p' "$s"
+      echo
+    done
+  } > "$GH_DIR/copilot-instructions.md"
+  echo -e "  \033[0;36m[Copilot]\033[0m .github/copilot-instructions.md"
+  echo
+fi
+
+#============================================================
+# .gitignore
+#============================================================
+GI="$SRC_DIR/.gitignore"
+if [ ! -f "$GI" ]; then
+  cat > "$GI" <<'EOF'
+# Editor rule directories auto-generated by sync scripts
 .cursor/
 .trae/
 .agents/
@@ -209,11 +147,15 @@ if [[ ! -f "$GITIGNORE" ]]; then
 EOF
 fi
 
-# ===== 结果汇总 =====
-echo -e "${C_YELLOW}======= Sync Complete =======${C_RESET}"
-has_target codebuddy && print_summary 'CodeBuddy'   '.codebuddy/skills/{name}/' "${#SKILLS[@]}" 'SKILL.md'
-has_target cursor    && print_summary 'Cursor'      '.cursor/rules/{name}/'     "${#SKILLS[@]}" 'rule.mdc'
-has_target trae      && print_summary 'Trae Rules'  '.trae/rules/{name}/'       "${#SKILLS[@]}" 'rule.md'
-has_target trae      && print_summary 'Trae Skills' '.agents/skills/{name}/'    "${#SKILLS[@]}" 'SKILL.md'
-has_target copilot   && print_summary 'Copilot'     '.github/'                  '1'             'aggregated'
-echo -e "${C_YELLOW}=============================${C_RESET}"
+echo -e "\033[0;33m======= Sync Complete =======\033[0m"
+[ -n "${TARGETS[*]}" ]
+for t in "${TARGETS[@]}"; do
+  case "$t" in
+    codebuddy) echo -e "CodeBuddy  : .codebuddy/skills/{name}/SKILL.md x$TOTAL";;
+    cursor)    echo -e "Cursor     : .cursor/rules/{name}/rule.mdc x$TOTAL";;
+    trae)      echo -e "Trae Rules : .trae/rules/{name}/rule.md x$TOTAL";;
+               echo -e "Trae Skills: .agents/skills/{name}/SKILL.md x$TOTAL";;
+    copilot)   echo -e "Copilot    : .github/copilot-instructions.md (aggregated)";;
+  esac
+done
+echo -e "\033[0;33m==========================\033[0m"

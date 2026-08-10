@@ -1,271 +1,32 @@
 ---
-name: madong-backend-route
-description: Generate route configuration for madong module. Supports both app (main project) and plugin targets. Creates route.php files for adminapi and api with proper OpenAPI scan paths.
+name: backend-route
+description: 后端路由注册规范（Webman Route 配置式 + 注解，adminapi/api 分组，权限码绑定）
+globs:
+  - "backend/route/**/*.php"
+  - "backend/config/route.php"
+  - "backend/app/adminapi/route/**/*.php"
 ---
 
-# Generate Route
+# 后端路由规范
 
-Create route configuration files for modules.
+## 注册方式
+- Webman 路由在 `config/route.php` 或各应用 `route/` 目录的 PHP 文件里用 `Route::` 静态方法注册。
+- 典型分组：
+  ```php
+  Route::group('/adminapi', function () {
+      Route::get('/system/menu/list', [MenuController::class, 'index']);
+      Route::post('/system/menu/create', [MenuController::class, 'store']);
+  });
+  ```
+- 也可使用注解（参考 `core/business/route` 的路由组织 + Swagger 注册机制）。
 
-## File Location
+## 约定
+- 路由前缀区分应用：`/adminapi/*`（后台）、`/api/*`（前台）、`/install/*`（安装）。
+- 路由 code（权限标识）：`{app}.{module}.{action}`，如 `adminapi.menu.update`。
+- 权限码：`{module}:{model}:{action}`，如 `system:menu:update`，用于前端菜单/按钮权限与后端中间件校验。
+- 在 `Crud` 基类的标准方法里，路由已约定好；新增自定义动作需同步加路由 + 权限码。
 
-**App (主项目):**
-```
-app/adminapi/config/route.php
-app/api/config/route.php
-```
-
-**Plugin (插件):**
-```
-plugin/{plugin}/config/route.php
-```
-
-## AdminAPI Route Template
-
-```php
-<?php
-
-declare(strict_types=1);
-/**
- *+------------------
- * madong
- *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
- *+------------------
- * Author: Mr. April (405784684@qq.com)
- *+------------------
- */
-
-use Webman\Route;
-use WebmanTech\Swagger\Swagger;
-use OpenApi\Annotations as OA;
-
-/**
- * 注册admin API路由
- */
-Route::group('/adminapi', function () {
-    Swagger::create()->registerRoute([
-        'route_prefix'   => '/openapi',
-        'register_route' => true,
-        'openapi_doc'    => [
-            'scan_path' => [
-                base_path('app/schema'),      // 基础schema
-                base_path('app/adminapi'),
-                base_path('app/install'),
-            ],
-            'modify'    => function (OA\OpenApi $openapi) {
-                $openapi->info->title   = config('app.name') . ' API';
-                $openapi->info->version = '1.0.0';
-                $openapi->servers       = [
-                    new OA\Server([
-                        'url'         => '/adminapi',
-                        'description' => request()->host(),
-                    ]),
-                ];
-
-                if (!$openapi->components instanceof OA\Components) {
-                    $openapi->components = new OA\Components([]);
-                }
-
-                $openapi->components->securitySchemes = [
-                    new OA\SecurityScheme([
-                        'securityScheme' => 'api_key',
-                        'type'           => 'apiKey',
-                        'name'           => config('madong.jwt.app.token_name', 'Authorization'),
-                        'in'             => 'header',
-                    ]),
-                ];
-            },
-        ],
-    ]);
-});
-```
-
-## API Route Template
-
-```php
-<?php
-
-declare(strict_types=1);
-/**
- *+------------------
- * madong
- *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
- *+------------------
- * Author: Mr. April (405784684@qq.com)
- *+------------------
- */
-
-use Webman\Route;
-use WebmanTech\Swagger\Swagger;
-use OpenApi\Annotations as OA;
-
-/**
- * 注册API路由
- */
-Route::group('/api', function () {
-    Swagger::create()->registerRoute([
-        'route_prefix'   => '/openapi',
-        'register_route' => true,
-        'openapi_doc'    => [
-            'scan_path' => [
-                base_path('app/api'),
-            ],
-            'modify'    => function (OA\OpenApi $openapi) {
-                $openapi->info->title   = config('app.name') . ' API';
-                $openapi->info->version = '1.0.0';
-                $openapi->servers       = [
-                    new OA\Server([
-                        'url'         => '/api',
-                        'description' => request()->host(),
-                    ]),
-                ];
-
-                if (!$openapi->components instanceof OA\Components) {
-                    $openapi->components = new OA\Components([]);
-                }
-
-                $openapi->components->securitySchemes = [
-                    new OA\SecurityScheme([
-                        'securityScheme' => 'api_key',
-                        'type'           => 'apiKey',
-                        'name'           => config('core.jwt.app.token_name', 'Authorization'),
-                        'in'             => 'header',
-                    ]),
-                ];
-            },
-        ],
-    ]);
-});
-```
-
-## Plugin Route Template
-
-```php
-<?php
-
-declare(strict_types=1);
-/**
- *+------------------
- * madong
- *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
- *+------------------
- * Author: Mr. April (405784684@qq.com)
- *+------------------
- */
-
-use Webman\Route;
-use WebmanTech\Swagger\Swagger;
-use OpenApi\Annotations as OA;
-
-/**
- * 注册{Plugin}插件路由
- */
-Route::group('/{plugin_path}', function () {
-    // AdminAPI 路由
-    Route::group('/adminapi', function () {
-        // 控制器自动加载，无需手动注册
-    });
-
-    // API 路由
-    Route::group('/api', function () {
-        // 控制器自动加载，无需手动注册
-    });
-
-    // Swagger 文档注册
-    Swagger::create()->registerRoute([
-        'route_prefix'   => '/openapi',
-        'register_route' => true,
-        'openapi_doc'    => [
-            'scan_path' => [
-                // 插件的 adminapi 目录
-                __DIR__ . '/app/adminapi',
-                // 插件的 api 目录
-                __DIR__ . '/app/api',
-            ],
-            'modify'    => function (OA\OpenApi $openapi) {
-                $openapi->info->title   = '{Plugin} API';
-                $openapi->info->version = '1.0.0';
-                $openapi->servers       = [
-                    new OA\Server([
-                        'url'         => '/{plugin_path}',
-                        'description' => request()->host(),
-                    ]),
-                ];
-
-                if (!$openapi->components instanceof OA\Components) {
-                    $openapi->components = new OA\Components([]);
-                }
-
-                $openapi->components->securitySchemes = [
-                    new OA\SecurityScheme([
-                        'securityScheme' => 'api_key',
-                        'type'           => 'apiKey',
-                        'name'           => config('madong.jwt.app.token_name', 'Authorization'),
-                        'in'             => 'header',
-                    ]),
-                ];
-            },
-        ],
-    ]);
-});
-```
-
-## Route Auto-Discovery
-
-Controllers are auto-loaded by webman based on naming convention:
-
-| Controller | Auto Route |
-|------------|------------|
-| `adminapi/controller/member/MemberController.php` | `/adminapi/member/member` |
-| `adminapi/controller/member/UserController.php` | `/adminapi/member/user` |
-| `api/controller/auth/AuthController.php` | `/api/auth/auth` |
-
-### Route Naming Convention
-
-```
-app/adminapi/controller/{module}/{Model}Controller.php
-                                    ↓
-                          /{module}/{model}
-```
-
-## Swagger Scan Path Configuration
-
-### AdminAPI OpenAPI Scan
-
-```php
-'scan_path' => [
-    base_path('app/schema'),      // Schema DTOs
-    base_path('app/adminapi'),    // AdminAPI controllers, validates
-    base_path('app/install'),     // Install controllers
-],
-```
-
-### API OpenAPI Scan
-
-```php
-'scan_path' => [
-    base_path('app/api'),         // API controllers
-],
-```
-
-### Plugin OpenAPI Scan
-
-```php
-'scan_path' => [
-    __DIR__ . '/app/adminapi',    // Plugin AdminAPI
-    __DIR__ . '/app/api',         // Plugin API
-],
-```
-
-## Auto-generation Checklist
-
-When generating route:
-- [ ] Create adminapi/config/route.php with Swagger
-- [ ] Create api/config/route.php with Swagger
-- [ ] Configure scan_path to include all relevant directories
-- [ ] Set correct security scheme (Authorization header)
-- [ ] Configure server URL and description
-- [ ] For plugins, use __DIR__ for relative paths
+## 写法要点
+- 不要在控制器里写 `Route::`（路由与控制器分离）。
+- SSE 实时接口单独注册，返回 `text/event-stream`。
+- 路由文件改动后需重启 Webman（或开启自动重载）。

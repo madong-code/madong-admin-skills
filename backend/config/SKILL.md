@@ -1,47 +1,26 @@
 ---
-name: madong-backend-config
-description: 配置体系规范，覆盖 28 个配置文件的结构、加载顺序、环境变量覆盖规则
+name: backend-config
+description: 后端配置体系规范（config/ 与 core.{group}.* 命名空间，PSR 加载）
 globs:
-  - "config/**/*.php"
-  - "app/**/config/**/*.php"
+  - "backend/config/**/*.php"
+  - "backend/core/**/config/**/*.php"
 ---
 
-## 配置体系
+# 后端配置体系规范
 
-### 全局配置 (config/)
+## 业务配置（backend/config/）
+- 应用级配置放在 `backend/config/*.php`，通过 `config('key')` 读取。
+- 路由、中间件、数据库、redis、静态文件等在对应 `config/*.php` 中定义。
 
-| 文件 | 说明 |
-|------|------|
-| `app.php` | 应用基础配置 |
-| `database.php` | 数据库连接配置 |
-| `cache.php` | 缓存配置 (Redis/File) |
-| `log.php` | 日志配置 |
-| `route.php` | 路由配置 |
-| `middleware.php` | 全局中间件 |
-| `exception.php` | 异常处理配置 |
-| `thinkorm.php` | Laravel Eloquent ORM 配置 |
+## 内核配置（core/ 分组）
+- `core/` 下每个一级分组（foundation/infrastructure/security/communication/io/business）有独立 `config/app.php` 控制 `enable`。
+- 启用后配置以命名空间 `core.{group}.{module}.{key}` 加载，例：
+  - `config('core.security.jwt.token_name')`
+  - `config('core.io.snowflake.node_id')`
+  - `config('core.infrastructure.logger.base.path')`
+- 新增 core 模块：在对应分组 `config/` 下加 `{module}.php`，需要时到 `config/app.php` 设 `enable=true`。
+- 入口：`app/bootstrap/CoreConfigBootstrap.php` 扫描并加载。
 
-### 环境变量覆盖
-
-所有配置项可通过 `.env` 文件覆盖，使用 `env()` 函数读取：
-
-```php
-return [
-    'host' => env('DB_HOST', '127.0.0.1'),
-    'port' => env('DB_PORT', 3306),
-];
-```
-
-## 关键约定
-
-- 配置返回 PHP 数组，键名使用 snake_case
-- 敏感信息必须通过 `env()` 从环境变量读取
-- 动态配置存储在数据库中，通过 Config Service 读取
-- 插件配置放在 `plugin/{name}/config/` 下
-
-## 检查清单
-
-- [ ] 配置键名是否 snake_case
-- [ ] 敏感信息是否使用 env() 读取
-- [ ] 是否有合理的默认值
-- [ ] 插件配置是否放在正确路径
+## 写法要点
+- 配置返回纯数组，键用 snake_case。
+- 敏感信息（密钥、DB 密码）放 `.env`，用 `env('KEY')` 读取，不要硬编码。

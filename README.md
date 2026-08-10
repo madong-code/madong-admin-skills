@@ -1,184 +1,223 @@
-# Madong Skills 技能库
+# Madong SaaS Skills — 项目 AI 技能库 (MDAdmin 标准版)
 
-本目录包含 Madong 框架的 **AI 技能库**，覆盖**代码生成**和**项目规范**两大领域，采用三层分类结构（backend/frontend/cross），支持一键同步到所有主流 AI 编辑器。
+让 AI 理解你的项目规范。覆盖后端、前端、跨层三大领域，一键分发到各 AI 编辑器。
+
+> 适用版本：`madong v5.1.0` 重构后的标准版仓库
+> - 后端：`backend/`（PHP 8.2 + Webman 2.2 + Laravel Eloquent）
+> - 前端：**一个后端拖多个 UI 前端**——`template/admin`(固定位置，内容可整体换为不同 UI 的等价模版，靠 package.json name 区分，如 `vue-vben-admin-ele` / `madong-vue` / `vue-vben-admin-antd`) + `template/web`(Nuxt 4 + Element Plus) + `template/install`(轻量安装向导)，全部消费同一后端 API
+> - 安装向导：`template/install`
 
 ## 快速开始
 
-### 同步到 AI 编辑器
-
-提供两个等价的脚本：Windows 用 `sync.ps1`，macOS / Linux 用 `sync.sh`。
-
-**Windows（PowerShell）**
-
+### Windows
 ```powershell
-# 一键同步全部（CodeBuddy + Cursor + Trae + Copilot）
-powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1
+# 一键同步全部（默认）
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1
 
 # 只同步你用的编辑器（推荐）
-powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target codebuddy
-powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target cursor
-powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target trae
-powershell -ExecutionPolicy Bypass -File madong-skills\sync.ps1 -target copilot
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target codebuddy
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target cursor
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target trae
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target copilot
 ```
 
-**macOS / Linux（Bash）**
-
+### macOS / Linux
 ```bash
-# 首次使用赋予执行权限（可选）
-chmod +x madong-skills/sync.sh
-
-# 一键同步全部（CodeBuddy + Cursor + Trae + Copilot）
-bash madong-skills/sync.sh
-
-# 只同步你用的编辑器（推荐）
-bash madong-skills/sync.sh --target codebuddy
-bash madong-skills/sync.sh --target cursor
-bash madong-skills/sync.sh --target trae
-bash madong-skills/sync.sh --target copilot
-
-# 多个编辑器用逗号分隔
-bash madong-skills/sync.sh --target codebuddy,cursor
+chmod +x skills/sync.sh
+./skills/sync.sh            # 全部
+./skills/sync.sh codebuddy  # 只同步 CodeBuddy
 ```
 
-> 依赖：Bash 4+、`find`、`awk`、`sed`（macOS / Linux 默认自带）。
+执行后根据你使用的编辑器查看对应章节：
 
-### 生成完整 CRUD
+### CodeBuddy
+1. 运行同步脚本
+2. 打开 **设置 → 技能**，应看到所有技能
+3. 对话中直接输入：`@backend-controller` 或描述需求自动触发
 
-```
-create CRUD for articles app
-create CRUD for articles plugin
-create CRUD for articles no-api
-```
+### Trae
+| 功能 | 文件位置 |
+|------|---------|
+| 技能（Skills） | `.agents/skills/{name}/SKILL.md` |
+| 规则（Rules） | `.trae/rules/{name}/rule.md` |
 
-参数说明：
-- `articles` - 模块名称
-- `app` - 主项目
-- `plugin` - 插件
-- `no-api` - 不生成 API 层
+### Cursor
+- 规则自动出现在 **Rules** 管理界面（需重启）
+- 文件：`.cursor/rules/{name}/rule.mdc`
 
-### 分步生成
+### GitHub Copilot
+- 所有规范聚合在 `.github/copilot-instructions.md`，自动读取
 
-```
-generate model for article
-generate dao for article
-generate service for article
-generate controller for article
-generate validate for article
-generate schema for article
-```
+---
 
-## 目录结构
+## 技能源文件结构
 
-```
-madong-skills/
-├── README.md                     # 本文件
-├── sync.ps1                       # 跨编辑器同步脚本 (Windows)
-├── sync.sh                        # 跨编辑器同步脚本 (macOS / Linux)
-├── backend/                       # 后端 34 项（代码生成 + 项目规范）
-│   ├── gen-crud/                 # [生成] CRUD 总编排
-│   ├── gen-parse/                # [生成] 表解析
-│   ├── gen-migrate/              # [生成] 数据库迁移
-│   ├── gen-model/                # [生成] Eloquent 模型
-│   ├── gen-controller/           # [生成] AdminAPI 控制器
-│   ├── gen-api-controller/       # [生成] 前台 API 控制器
-│   ├── gen-validate/             # [生成] 验证器
-│   ├── gen-service/              # [生成] 后台服务层
-│   ├── gen-api-service/          # [生成] 前台 API 服务层
-│   ├── gen-dao/                  # [生成] 数据访问层
-│   ├── gen-schema/               # [生成] Schema DTO
-│   ├── gen-event/                # [生成] 事件
-│   ├── gen-listener/             # [生成] 监听器
-│   ├── route/                    # [生成+规范] 路由配置
-│   ├── lang/                     # [生成+规范] 后端国际化
-│   ├── logger/                   # [生成+规范] 日志集成
-│   ├── tests/                    # [生成+规范] 测试规范
-│   ├── config/                   # [规范] 配置体系
-│   ├── bootstrap/                # [规范] 启动引导
-│   ├── enum/                     # [规范] 枚举
-│   ├── middleware/               # [规范] 中间件
-│   ├── exception/                # [规范] 异常体系
-│   ├── swagger/                  # [规范] Swagger/OpenAPI 注解
-│   ├── command/                  # [规范] 命令行命令
-│   ├── crontab/                  # [规范] 定时任务
-│   ├── process/                  # [规范] 自定义进程
-│   ├── queue/                    # [规范] Redis 队列
-│   ├── scope/                    # [规范] 数据权限作用域
-│   ├── upload/                   # [规范] 文件上传
-│   ├── cache/                    # [规范] 缓存策略
-│   ├── monitor/                  # [规范] 系统监控
-│   ├── notify/                   # [规范] 消息通知
-│   ├── excel/                    # [规范] Excel 导入导出
-│   └── generator/                # [规范] 代码生成器
-├── frontend/                     # 前端 14 项
-│   ├── admin/                    # 管理后台 (Vue 3 + Element Plus)
-│   │   ├── gen/                  # [生成] Vue 页面生成
-│   │   ├── i18n/                 # [生成] 前端国际化
-│   │   ├── view/                 # [规范] 视图层
-│   │   ├── api/                  # [规范] API 层
-│   │   ├── component/            # [规范] 公共组件
-│   │   ├── store/                # [规范] Pinia 状态管理
-│   │   ├── router/               # [规范] 路由
-│   │   └── common/               # [规范] 公共规范
-│   └── web/                      # 前台网站 (Nuxt 4)
-│       ├── view/                 # [规范] 页面
-│       ├── api/                  # [规范] API 层
-│       ├── component/            # [规范] 组件
-│       ├── store/                # [规范] 状态管理
-│       ├── layout/               # [规范] 布局
-│       └── common/               # [规范] 公共规范
-└── cross/                        # 跨层 3 项
-    ├── api-convention/           # [规范] API 对接规范
-    ├── database/                 # [规范] 数据库设计规范
-    └── app-skeleton/             # [规范] 站点脚手架规范
+```text
+skills/
+├── README.md                     # ← 本文件
+├── sync.ps1                      # ← 同步脚本（Windows PowerShell）
+├── sync.sh                       # ← 同步脚本（macOS / Linux bash）
+├── backend/                      # 后端规范（分层 skill 均"一个文件覆盖框架层+插件端"）
+│   ├── controller/               # 控制器（adminapi/api/install + 插件端，含命名空间对照表）
+│   ├── service/                  # 服务层（注入 DAO / 事务，框架+插件）
+│   ├── dao/                      # 数据访问层（BaseDao，框架+插件）
+│   ├── model/                    # Eloquent 模型（软删除/雪花ID/Scope，框架+插件）
+│   ├── enum/                     # PHP 8.1 原生枚举（框架+插件）
+│   ├── schema/                   # DTO（Request/Response，框架+插件）
+│   ├── validate/                 # 验证器（场景校验，框架+插件）
+│   ├── route/                    # 路由注册（webman Route + 注解）
+│   ├── middleware/               # 中间件
+│   ├── event/                    # 事件
+│   ├── listener/                 # 监听器
+│   ├── config/                   # 配置体系（core.{group}.*）
+│   ├── core/                     # 框架内核 core/ 分包约定
+│   ├── generator/                # 全栈代码生成器（core/business/generator）
+│   ├── plugin/                   # 插件体系「专有」部分（Install/config/info/resource + 命名空间根规律）
+│   └── command/                  # 命令脚本体系（madong-plugin/make/install/config/metadata）
+├── frontend/                     # 前端规范（一个后端拖多个 UI 前端）
+│   ├── ARCHITECTURE.md           # ★ 总架构：一后端·多前端·多UI（必读）
+│   ├── shared/                   # 跨 admin/web/install 共用（api 客户端 / i18n / 命名）
+│   ├── admin/                    # ★ 主后台（固定目录位置，内容可整体换 UI，靠 package.json name 区分）
+│   │   ├── SKILL.md              #   按 name 判定当前 UI + 规范
+│   │   └── INSTANCES.md          #   可能的 UI 身份清单（ele / madong-vue / antd...互斥）
+│   ├── web/                      # Nuxt 4 + Element Plus 后台（独立技术栈）
+│   └── install/                  # 安装向导（轻量 Element Plus 应用）
+└── cross/                        # 跨层规范
+    ├── git-convention/           # Git 提交规范（lefthook + commitlint + czg）
+    ├── commit-convention/        # 多仓库提交信息格式（scope 用法）
+    ├── lint-format/              # Lint/Format（oxlint + eslint + stylelint + oxfmt）
+    ├── database/                 # 数据库设计规范（表 / 字段 / 迁移）
+    └── api-convention/           # 前后端 API 对接规范（所有前端共用契约）
 ```
 
-## Target 参数说明
+### ★ 核心架构：一个后端拖多个 UI 前端
+- `backend/` 是**单一数据源与业务逻辑中心**，不感知前端 UI。
+- `template/admin` 是**固定目录位置，内容可整体替换为功能等价、UI 不同的模版**（当前：`vue-vben-admin-ele`；另可来自 gitee `motion-code/madong-vue`；未来可能 `vue-vben-admin-antd`）。任意时刻只生效其中一种，**靠 `package.json` 的 `name` 区分当前是哪套 UI**。
+- `template/web`（Nuxt 4）与 `template/install`（轻量 Ele）是另外两个独立前端壳，同样消费同一后端。
+- 所有前端共享同一套 API 契约（见 `cross-api-convention`），**禁止为某个 UI 改后端契约**。
+- 详见 `frontend/ARCHITECTURE.md`，改 admin 前先读 `frontend/admin/SKILL.md` 的「§0 判定 UI」章节。
 
-所有生成类 Skills 支持 `target` 参数来区分主项目和插件：
+---
 
-| 参数值 | 说明 | 命名空间 |
-|--------|------|----------|
-| `app` | 主项目 | `app\{module}\...` |
-| `plugin` | 插件 | `plugin\{Plugin}\app\...` |
-
-## 统一路径变量
-
-| 变量 | App | Plugin |
-|------|-----|--------|
-| `{ns}` | `app` | `plugin\{Plugin}\app` |
-| `{prefix}` | (空) | `plugin\{Plugin}` |
-| `{model_ns}` | `app\model` | `plugin\{Plugin}\app\model` |
-| `{dao_ns}` | `app\dao` | `plugin\{Plugin}\app\dao` |
-| `{service_ns}` | `app\service\admin` | `plugin\{Plugin}\app\service\admin` |
-
-## 技术栈
-
-- **后端**：PHP 8.2+ / Workerman Webman 2.2+ / Laravel Eloquent 11+
-- **管理后台**：Vue 3 + TypeScript + Element Plus + VxeTable + Pinia
-- **前台网站**：Vue 3 + Nuxt 4 + Element Plus + UnoCSS
-- **数据库**：MySQL 8.0+（雪花 ID 主键）
-- **API 文档**：OpenAPI/Swagger（注解自动生成）
-- **认证**：JWT（AccessTokenMiddleware）
-- **权限**：`#[Permission]` 属性注解
-
-## 按场景选择技能
+## 按场景选择
 
 | 场景 | 推荐技能 |
 |------|---------|
-| **生成 CRUD** | gen-crud（自动编排所有 gen-* 子技能） |
-| **后端开发** | backend/ 下所有 gen-* + 规范 |
-| **前端开发** | frontend/admin/ + cross/api-convention |
-| **前台网站** | frontend/web/ + cross/api-convention |
-| **架构设计** | cross/database + cross/app-skeleton |
+| 写后端 CRUD | backend/controller + service + dao + model + validate + schema + route |
+| 写 Admin 页面（任意 UI） | frontend/admin（先 §0 按 name 判定 UI）+ frontend/shared/* |
+| 切换/替换 admin 的 UI | frontend/ARCHITECTURE + frontend/admin/INSTANCES + frontend/admin §4 |
+| 写 Web(Nuxt) 页面 | frontend/web/* + frontend/shared/* |
+| 写 Install 页面 | frontend/install/* |
+| 写/接插件（plugin） | backend/plugin/* + backend/command（madong-plugin:*） |
+| 脚手架/命令脚本 | backend/command/* |
+| 代码生成 | backend/generator/* + backend/command（madong-make:*） |
+| 整体项目开发 | 以上全部 + cross/* |
 
-## 同步目标
+## 关键命令速查（backend）
+```bash
+# 插件
+php webman madong-plugin:develop:create <snake_name> <Title>   # 新建插件模板
+php webman madong-plugin:develop:build <name>                  # 构建插件
+php webman madong-plugin:install <name>                        # 安装（建表/导菜单/部署前端）
+php webman madong-plugin:uninstall <name>                      # 卸载
+php webman madong-plugin:list                                  # 列出插件
 
-执行 `sync.ps1`（Windows）或 `sync.sh`（macOS / Linux）后，技能文件被分发到：
+# 单文件脚手架（stub 在 app/command/make/stubs）
+php webman madong-make:controller <Name>
+php webman madong-make:service <Name>
+php webman madong-make:dao <Name>
+php webman madong-make:model <Name>
+php webman madong-make:validate <Name>
+php webman madong-make:middleware <Name>
 
-| 编辑器 | 位置 | 格式 |
-|--------|------|------|
-| **CodeBuddy** | `.codebuddy/skills/{name}/SKILL.md` | 直接复制 |
-| **Cursor** | `.cursor/rules/{name}/rule.mdc` | 直接复制 |
-| **Trae Rules** | `.trae/rules/{name}/rule.md` | 转换 frontmatter |
-| **Trae Skills** | `.agents/skills/{name}/SKILL.md` | 直接复制 |
-| **GitHub Copilot** | `.github/copilot-instructions.md` | 聚合 Markdown |
+# 安装 / 配置 / 元数据
+php webman install:madong               # 系统安装
+php webman madong-download:template <name>
+php webman madong-config:mysql          # 写 MySQL 配置
+php webman madong:migrate-admin-menu     # 同步后台菜单
+php webman madong:permission:collect     # 收集权限码
+```
+> 命令基于 Symfony Console，注册用 `#[AsCommand]`，基类 `app\command\BaseCommand`（支持 SSE）。详见 `backend/command`。
+
+---
+
+## 项目通用规范（供 AI 参考）
+
+### 技术栈
+- 后端：PHP 8.2 + Workerman Webman 2.2 + **Laravel Eloquent 11**（使用 `Illuminate\Database\Eloquent`，**非 ThinkPHP**）
+
+> ⚠️ **ORM 栈禁令（扫描/生成时务必遵守）**：本项目数据层只用 Laravel Eloquent，**严禁 ThinkPHP 风格写法**。
+> - 基类命名空间均为 `core\foundation\base\`（注意是 **foundation**，不是 `found`）。
+> - 模型：`class X extends core\foundation\base\BaseModel`，字段用 `$table`/`$fillable`/`$timestamps`，软删除用 `SoftDeletes` trait。
+> - 查询一律走 Eloquent：`getModel()->query()`、`->where()`、`->find()`、`->first()`、`->get()`、`->paginate()`、`->create()`、`->update()`、`->delete()`、`->destroy()`。
+> - 严禁：ThinkPHP 的 `Db::name()`、`->where()->find()`、`->inc()`、`->dec()`、`->value()`、`->column()`、`->insertGetId()`、`fetchSql()`、`->findOrEmpty()`、`->saveAll()` 等；这些会导致逻辑错误，且易与本项目栈混淆。
+> - 框架内仅有的 `Db::`（如 `MigrateCommand.php`）是 Laravel 的 `Illuminate\Support\Facades\DB`，属正确用法，不要改动。
+- 前端：`template/admin` = Vue 3 + Vite + TypeScript + **Vben Admin 5.7（当前生效 UI 由 package.json name 决定；默认 `vue-vben-admin-ele`/Element Plus，可整体替换为 `madong-vue` 等等价模版）** + Pinia
+- 前端：`template/web` = Nuxt 4 + TypeScript + Vite + Element Plus + Pinia + UnoCSS
+- 数据库：MySQL 8.0+（多租户）
+- 实时通信：SSE（Server-Sent Events）
+
+### 命名总则
+| 场景 | 规范 | 示例 |
+|------|------|------|
+| 控制器类 | 大驼峰 + `Controller` 后缀 | `MenuController` |
+| 服务类 | 大驼峰 + `Service` 后缀 | `MenuService` |
+| DAO 类 | 大驼峰 + `Dao` 后缀 | `MenuDao` |
+| 模型类 | 大驼峰（无后缀） | `Menu` |
+| 验证器类 | 大驼峰 + `Validate` 后缀 | `MenuValidate` |
+| Schema Request | 大驼峰 + `Request` 后缀 | `MenuCreateRequest` |
+| Schema Response | 大驼峰 + `Response` 后缀 | `MenuResponse` |
+| 枚举类 | 大驼峰（无后缀，PHP enum） | `MenuType` |
+| 中间件类 | 大驼峰 + `Middleware` 后缀 | `AdminAuthMiddleware` |
+| 数据库表 | `{prefix}_{module}_{table}` | `system_menu`、`member_user` |
+| 数据库字段 | snake_case | `created_at`、`parent_id` |
+| 路由/权限码 | `{app}.{module}.{action}` / `{module}:{model}:{action}` | `adminapi.menu.update` / `system:menu:update` |
+| 前端组件 | 大驼峰 .vue | `MenuModal.vue` |
+| 前端 API 函数 | 小驼峰 | `getMenuList`、`createMenu` |
+| 前端路由 code | `{App}{Module}{Action}` | `SystemMenuList` |
+| JSON 响应字段 | snake_case | `items`、`total`、`page_no`、`page_size` |
+| 目录/文件名 | kebab-case | `system/menu/index.vue` |
+
+### 控制器继承链
+```
+adminapi:  Controller → Crud → Base(BaseController)   [app/adminapi/controller/]
+api:       Controller → Base(BaseController)          [app/api/controller/]
+```
+基类均位于 `core/foundation/base/`（`core\foundation\base` 命名空间）。
+
+### Git 提交规范
+```
+<type>(<scope>): <subject>
+```
+| type | 说明 |
+|------|------|
+| `feat` | 新功能 |
+| `fix` | 修复 bug |
+| `refactor` | 重构 |
+| `style` | UI 样式变更 |
+| `perf` | 性能优化 |
+| `chore` | 构建/工具/配置变更 |
+| `docs` | 文档更新 |
+| `test` | 测试相关 |
+| `revert` | 回退 |
+| `types` | 类型定义变更 |
+| `release` | 发版 |
+
+| scope | 说明 |
+|-------|------|
+| `backend` | 后端 |
+| `admin` | Vben 后台前端 |
+| `web` | Nuxt 后台前端 |
+| `install` | 安装向导前端 |
+| `project` | 项目级 |
+| `lint` | Lint 配置 |
+| `ci` | CI 配置 |
+| `deploy` | 部署 |
+| `other` | 其他 |
+
+```
+feat(admin): 新增会员积分管理页面
+fix(web): 修复租户列表分页问题
+refactor(backend): 重构菜单服务的查询逻辑
+chore(backend): 升级 webman 框架到 2.2
+```
