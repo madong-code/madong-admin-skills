@@ -5,7 +5,7 @@
 
 .PARAMETER target
   指定要同步的编辑器，多个用逗号分隔。可选值：
-    codebuddy, cursor, trae, copilot
+    codebuddy, cursor, trae, copilot, claude, windsurf, cline, roo, gemini, qwen
   不传则同步全部。
 
 .EXAMPLE
@@ -32,9 +32,11 @@ $srcDir = $PSScriptRoot
 $root   = Split-Path -Parent $srcDir
 
 # 解析目标
+# 注意：powershell -File 模式下 "-target a,b,c" 的逗号不会自动拆分为数组，这里手动拆分
 $rawTargets = if ($target) { $target } else { @() }
+$rawTargets = @($rawTargets | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if ($rawTargets.Count -eq 0) {
-    $targets = @('codebuddy', 'cursor', 'trae', 'copilot')
+    $targets = @('codebuddy', 'cursor', 'trae', 'copilot', 'claude', 'windsurf', 'cline', 'roo', 'gemini', 'qwen')
     $label = 'all'
 } else {
     $targets = $rawTargets | ForEach-Object { $_.ToLower().Trim() }
@@ -54,6 +56,59 @@ Write-Host ""
 function Get-SkillName($skillFile) {
     $relPath = $skillFile.FullName.Replace("$srcDir\", '').Replace("$srcDir/", '')
     return ($relPath -replace '[/\\]', '-') -replace '-SKILL\.md$', ''
+}
+
+# 辅助函数：把 SKILL.md 转换为指定编辑器的规则文件内容（重写 frontmatter）
+function Convert-ToRuleContent($content, $format) {
+    if ($content -match '(?s)^---\r?\n(.*?)\r?\n---\r?\n(.*)$') {
+        $frontmatter = $matches[1]
+        $body = $matches[2]
+
+        $desc = ''
+        $globsList = @()
+        foreach ($line in ($frontmatter -split '\r?\n')) {
+            if ($line -match '^description:\s*(.*)') { $desc = ($matches[1] -replace '\r$', '') }
+            if ($line -match '^\s+-\s+"(.*)"') { $globsList += $matches[1] }
+        }
+
+        $newFront = @()
+        if ($format -eq 'windsurf') { $newFront += 'alwaysApply: false' }
+        if ($desc) { $newFront += "description: $desc" }
+        if ($globsList.Count -gt 0) {
+            $newFront += 'globs: "' + ($globsList -join ', ') + '"'
+        }
+        return "---`n" + ($newFront -join "`n") + "`n---`n$body"
+    }
+    return $content
+}
+
+# 辅助函数：聚合所有 skill 生成单一指令文件（Gemini / Qwen）
+function Write-AggregatedFile($destPath, $label) {
+    $sb = New-Object System.Text.StringBuilder
+    $null = $sb.AppendLine('# Madong SaaS Project Instructions')
+    $null = $sb.AppendLine('')
+    $null = $sb.AppendLine('Project-wide coding rules and conventions for the Madong SaaS (MDAdmin standard) project.')
+    $null = $sb.AppendLine('')
+
+    foreach ($skill in $skills) {
+        $relPath = $skill.FullName.Replace("$srcDir\", '').Replace("$srcDir/", '')
+        $category = ($relPath -split '[/\\]')[0]
+        $skillName = (($relPath -replace '[/\\]', '-') -replace '-SKILL\.md$', '') -split '-' | Select-Object -Last 1
+
+        $null = $sb.AppendLine('---')
+        $null = $sb.AppendLine('')
+        $null = $sb.AppendLine("## $category / $skillName")
+
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
+        $content = $content -replace '(?s)^---\r?\n.*?\r?\n---\r?\n', ''
+        $null = $sb.AppendLine('')
+        $null = $sb.AppendLine($content.Trim())
+        $null = $sb.AppendLine('')
+    }
+
+    [System.IO.File]::WriteAllText($destPath, $sb.ToString())
+    Write-Host "  [$label] $destPath" -ForegroundColor Cyan
+    Write-Host ''
 }
 
 function Write-Summary($label, $path, $count, $format) {
@@ -111,16 +166,16 @@ if ($targets -contains 'trae') {
         New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
         $dest = Join-Path $skillDir 'rule.md'
 
-        $content = Get-Content $skill.FullName -Raw
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
 
-        if ($content -match '(?s)^---\n(.*?)\n---\n(.*)$') {
+        if ($content -match '(?s)^---\r?\n(.*?)\r?\n---\r?\n(.*)$') {
             $frontmatter = $matches[1]
             $body = $matches[2]
 
             $desc = ''
             $globsList = @()
-            foreach ($line in $frontmatter -split "`n") {
-                if ($line -match '^description:\s*(.*)') { $desc = $matches[1] }
+            foreach ($line in ($frontmatter -split '\r?\n')) {
+                if ($line -match '^description:\s*(.*)') { $desc = ($matches[1] -replace '\r$', '') }
                 if ($line -match '^\s+-\s+"(.*)"') { $globsList += $matches[1] }
             }
 
@@ -179,7 +234,7 @@ if ($targets -contains 'copilot') {
         $null = $sb.AppendLine("## $category / $skillName")
 
         $content = [System.IO.File]::ReadAllText($skill.FullName)
-        $content = $content -replace '(?s)^---\n.*?\n---\n', ''
+        $content = $content -replace '(?s)^---\r?\n.*?\r?\n---\r?\n', ''
         $null = $sb.AppendLine("")
         $null = $sb.AppendLine($content.Trim())
         $null = $sb.AppendLine("")
@@ -191,17 +246,118 @@ if ($targets -contains 'copilot') {
 }
 
 # =============================================================
+# 5. Claude Code (Agent Skills)
+# =============================================================
+if ($targets -contains 'claude') {
+    $claudeDir = Join-Path $root '.claude\skills'
+    New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
+
+    foreach ($skill in $skills) {
+        $name = Get-SkillName $skill
+        $skillDir = Join-Path $claudeDir $name
+        New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
+        $dest = Join-Path $skillDir 'SKILL.md'
+        Copy-Item -Path $skill.FullName -Destination $dest -Force
+        Write-Host "  [Claude] $name/SKILL.md" -ForegroundColor Cyan
+    }
+    Write-Host ""
+}
+
+# =============================================================
+# 6. Windsurf
+# =============================================================
+if ($targets -contains 'windsurf') {
+    $windsurfDir = Join-Path $root '.windsurf\rules'
+    New-Item -ItemType Directory -Force -Path $windsurfDir | Out-Null
+
+    foreach ($skill in $skills) {
+        $name = Get-SkillName $skill
+        $skillDir = Join-Path $windsurfDir $name
+        New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
+        $dest = Join-Path $skillDir 'rule.md'
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
+        [System.IO.File]::WriteAllText($dest, (Convert-ToRuleContent $content 'windsurf'), [System.Text.UTF8Encoding]::new($false))
+        Write-Host "  [Windsurf] $name/rule.md" -ForegroundColor Cyan
+    }
+    Write-Host ""
+}
+
+# =============================================================
+# 7. Cline
+# =============================================================
+if ($targets -contains 'cline') {
+    $clineDir = Join-Path $root '.clinerules'
+    New-Item -ItemType Directory -Force -Path $clineDir | Out-Null
+
+    foreach ($skill in $skills) {
+        $name = Get-SkillName $skill
+        $dest = Join-Path $clineDir "$name.md"
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
+        [System.IO.File]::WriteAllText($dest, (Convert-ToRuleContent $content 'cline'), [System.Text.UTF8Encoding]::new($false))
+        Write-Host "  [Cline] $name.md" -ForegroundColor Cyan
+    }
+    Write-Host ""
+}
+
+# =============================================================
+# 8. Roo Code
+# =============================================================
+if ($targets -contains 'roo') {
+    $rooDir = Join-Path $root '.roo\rules'
+    New-Item -ItemType Directory -Force -Path $rooDir | Out-Null
+
+    foreach ($skill in $skills) {
+        $name = Get-SkillName $skill
+        $dest = Join-Path $rooDir "$name.md"
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
+        [System.IO.File]::WriteAllText($dest, (Convert-ToRuleContent $content 'roo'), [System.Text.UTF8Encoding]::new($false))
+        Write-Host "  [Roo] $name.md" -ForegroundColor Cyan
+    }
+    Write-Host ""
+}
+
+# =============================================================
+# 9. Gemini CLI
+# =============================================================
+if ($targets -contains 'gemini') {
+    $geminiDest = Join-Path $root 'GEMINI.md'
+    Write-AggregatedFile $geminiDest 'Gemini'
+}
+
+# =============================================================
+# 10. Qwen Code
+# =============================================================
+if ($targets -contains 'qwen') {
+    $qwenDest = Join-Path $root 'QCLAUDE.md'
+    Write-AggregatedFile $qwenDest 'Qwen'
+}
+
+# =============================================================
 # .gitignore (always, in skills source dir)
 # =============================================================
 $gitignorePath = Join-Path $srcDir '.gitignore'
+$ignoreLines = @(
+    '# Editor rule directories auto-generated by sync scripts',
+    '.codebuddy/skills/',
+    '.cursor/',
+    '.trae/',
+    '.agents/',
+    '.github/copilot-instructions.md',
+    '.claude/skills/',
+    '.windsurf/rules/',
+    '.clinerules/',
+    '.roo/rules/',
+    'GEMINI.md',
+    'QCLAUDE.md'
+)
 if (-not (Test-Path $gitignorePath)) {
-    @"
-# Editor rule directories auto-generated by sync scripts
-.cursor/
-.trae/
-.agents/
-.github/copilot-instructions.md
-"@ | Set-Content -Path $gitignorePath -Encoding UTF8
+    $ignoreLines | Set-Content -Path $gitignorePath -Encoding UTF8
+} else {
+    $existing = Get-Content $gitignorePath
+    $toAdd = $ignoreLines | Where-Object { $_ -notin $existing }
+    if ($toAdd.Count -gt 0) {
+        Add-Content -Path $gitignorePath -Value $toAdd -Encoding UTF8
+    }
 }
 
 # =============================================================
@@ -213,4 +369,10 @@ if ($targets -contains 'cursor')   { Write-Summary 'Cursor'    '.cursor/rules/{n
 if ($targets -contains 'trae')     { Write-Summary 'Trae Rules' '.trae/rules/{name}/'       $skills.Count 'rule.md'   }
 if ($targets -contains 'trae')     { Write-Summary 'Trae Skills'.PadRight(14) '.agents/skills/{name}/'    $skills.Count 'SKILL.md'  }
 if ($targets -contains 'copilot')  { Write-Summary 'Copilot'   '.github/'                  '1'           'aggregated' }
+if ($targets -contains 'claude')   { Write-Summary 'Claude'    '.claude/skills/{name}/'    $skills.Count 'SKILL.md' }
+if ($targets -contains 'windsurf') { Write-Summary 'Windsurf'  '.windsurf/rules/{name}/'   $skills.Count 'rule.md'  }
+if ($targets -contains 'cline')    { Write-Summary 'Cline'     '.clinerules/{name}.md'     $skills.Count 'rule'     }
+if ($targets -contains 'roo')      { Write-Summary 'Roo'       '.roo/rules/{name}.md'      $skills.Count 'rule'     }
+if ($targets -contains 'gemini')   { Write-Summary 'Gemini'    'GEMINI.md'                 '1'           'aggregated' }
+if ($targets -contains 'qwen')     { Write-Summary 'Qwen'      'QCLAUDE.md'                '1'           'aggregated' }
 Write-Host "==========================" -ForegroundColor Yellow
