@@ -19,6 +19,12 @@ powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target codebuddy
 powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target cursor
 powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target trae
 powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target copilot
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target claude
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target windsurf
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target cline
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target roo
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target gemini
+powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target qwen
 ```
 
 ### macOS / Linux
@@ -26,6 +32,7 @@ powershell -ExecutionPolicy Bypass -File skills\sync.ps1 -target copilot
 chmod +x skills/sync.sh
 ./skills/sync.sh            # 全部
 ./skills/sync.sh codebuddy  # 只同步 CodeBuddy
+./skills/sync.sh claude windsurf cline roo gemini qwen  # 只同步其中几个
 ```
 
 执行后根据你使用的编辑器查看对应章节：
@@ -47,6 +54,32 @@ chmod +x skills/sync.sh
 
 ### GitHub Copilot
 - 所有规范聚合在 `.github/copilot-instructions.md`，自动读取
+
+### Claude Code
+| 功能 | 文件位置 |
+|------|---------|
+| 技能（Skills） | `.claude/skills/{name}/SKILL.md`，对话中 `@技能名` 引用 |
+
+### Windsurf
+| 功能 | 文件位置 |
+|------|---------|
+| 规则（Rules） | `.windsurf/rules/{name}/rule.md` |
+
+### Cline
+| 功能 | 文件位置 |
+|------|---------|
+| 规则（Rules） | `.clinerules/{name}.md` |
+
+### Roo Code
+| 功能 | 文件位置 |
+|------|---------|
+| 规则（Rules） | `.roo/rules/{name}.md` |
+
+### Gemini CLI
+- 所有规范聚合在 `GEMINI.md`，自动读取
+
+### Qwen Code
+- 所有规范聚合在 `QCLAUDE.md`，自动读取
 
 ---
 
