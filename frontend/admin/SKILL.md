@@ -35,7 +35,7 @@ Vue 3 + Vite 8 + TypeScript + **Element Plus** + Pinia + Vue Router + Tailwind C
 - `api/`、`views/`、`components/`、`router/`、`store/`、`enums/`、`types/`、`utils/`、`layouts/`、`locales/`、`lang/`、`plugin/`（插件业务）。
 - 依赖方向：`应用层` 可依赖 `src/core`；`src/core` 不得反向依赖 `src/api`、`src/components`、`src/views`。
 - 别名：运行时不使用 `@/`、`@vben/*`，用 `#/*` → `src/*`。
-- **插件开发场景**：插件 admin 前端源码在插件开发目录的 `resource/template/admin/`（目录名见 `backend-plugin`，勿硬编码 `download`）。只改当前运行端的插件代码，不要顺手写 web 或后端代码。
+- **插件开发场景**：插件 admin 前端**开发期直接改 `template/admin/src/plugin/{name}/`**（三端开发源之一，见 `backend-plugin`；`download/{name}/` 是导出产物，禁改）。只改当前运行端的插件代码，不要顺手写 web 或后端代码。
 
 ## §3 页面（views）规范
 - CRUD 用 `useCrud`（来自 `src/adapter` 或 `src/core`）+ `FormDialog` 弹窗，UI 无关。

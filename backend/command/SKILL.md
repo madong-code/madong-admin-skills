@@ -29,6 +29,7 @@ globs:
 | `madong-plugin:delete <name>` | 删除已安装插件 |
 | `madong-plugin:run <name>` | 运行插件（触发入口） |
 | `madong-plugin:list` | 列出插件 |
+| `madong-plugin:transfer <name> <scenario>` | scenario：`backend` 仅部署后端 / `full` 全量部署到三端 / `extract` 三端导出到 `download/{name}`（导出模式产物） |
 | `madong-plugin-migrate <name>` | 插件数据库迁移 |
 
 ### 代码脚手架 `madong-make:*`（单文件生成，配 stubs）

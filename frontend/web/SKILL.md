@@ -27,7 +27,7 @@ globs:
 - 状态用 Pinia（`stores/`），组合式 `useXxxStore`。
 - 组件名大驼峰 `.vue`；页面文件按路由 kebab-case。
 - 权限码、API 函数命名与 `frontend-shared` 一致（snake_case 响应、`{module}:{model}:{action}` 权限码）。
-- **插件开发场景**：插件 web 前端源码在插件开发目录的 `resource/template/web/`（目录名见 `backend-plugin`，勿硬编码 `download`）。只改当前运行端的插件代码，不要顺手写 admin 或后端代码。
+- **插件开发场景**：插件 web 前端**开发期直接改 `template/web/src/plugin/{name}/`**（三端开发源之一，见 `backend-plugin`；`download/{name}/` 是导出产物，禁改）。只改当前运行端的插件代码，不要顺手写 admin 或后端代码。
 
 ## 与 admin 的差异（生成代码时务必区分）
 | 维度 | admin (Vben) | web (Nuxt) |
