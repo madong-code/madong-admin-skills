@@ -68,6 +68,15 @@ return [
 
 > 命令详情见 `backend-command`。
 
+## 插件开发目录与变更范围（重要）
+- 开发中的插件源码在项目根的**插件开发目录** `{开发目录}/{name}/`（目录名由 `TransferCommand::DOWNLOAD_DIR` 定义，当前为 `download/`，**可能改名，勿硬编码**——动手前以该常量或实际存在的目录为准）。
+- 流程：在开发目录里改源码 → `madong-plugin:transfer {name} full` 分发到 `backend/plugin/{name}/` 与各前端模版；`extract` 反向提取到开发目录。
+- **只改当前正在运行/调试的端**，其他端一行都不动：
+  - 调后端（webman）→ 只改 `{name}/app/`、`config/`
+  - admin 模版在运行 → 只改 `{name}/resource/template/admin/`
+  - web 模版在运行 → 只改 `{name}/resource/template/web/`
+- 禁止为"保持一致"顺手生成其他端的等价实现/占位代码；其他端开发到时再改。
+
 ## 插件前端部署要点
 - 插件自带 Vue 页面放 `resource/template/admin/`，安装时部署到 `template/admin/src/plugin/{name}/`。
 - 改插件前端前先按 `frontend/admin` §0 判定当前 `template/admin` 的 UI（name）。
@@ -81,4 +90,6 @@ return [
 - [ ] `config/info.php` 元信息是否完整
 - [ ] 插件前端是否放 `resource/template/admin/`（而非直接改 template/admin）
 - [ ] 菜单数据是否放 `resource/data/menu`
+- [ ] 插件路径是否以实际开发目录为准（勿硬编码 `download`，见 `TransferCommand::DOWNLOAD_DIR`）
+- [ ] 是否只改了当前运行/调试的端（未生成其他端无用代码）
 - [ ] 是否通过 `madong-plugin:*` 命令创建/安装/卸载
