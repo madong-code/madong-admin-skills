@@ -1,40 +1,44 @@
 ---
 name: cross-commit-convention
-description: 多仓库（各端独立 git 仓库）提交信息格式规范（仓库内默认无 scope、必须 UTF-8 文件提交避免乱码）
+description: Git 提交信息格式规范（backend 单体仓库：仅 plugin/ 插件内容带插件名 scope 如 feat(cms):，其余提交一律不带 scope；必须 UTF-8 文件提交避免乱码）
 globs:
   - "**/commitlint.config.*"
   - "**/.commitlintrc*"
 ---
 
-# Git 提交信息规范（多仓库 / 各端独立仓库）
+# Git 提交信息规范
 
-> 本规范用于约束 AI 助手与人工提交，重点解决两类高频事故：
+> 本规范用于约束 AI 助手与人工提交，重点解决三类高频事故：
 > 1. **乱码**（AI 用 `-m` 传中文时 PowerShell/GBK 环境下 90% 概率乱码）
-> 2. **错误加 scope**（各端独立仓库内默认无 scope，AI 常误加 `backend` 等）
+> 2. **错误加 scope**（非 plugin 改动一律不带 scope，AI 常误加 `backend` 等）
+> 3. **漏加 scope**（`plugin/` 下插件改动必须带插件名 scope）
 
 ## 格式
 
 ```
-<type>: <subject>
+<type>: <subject>              # 默认（绝大多数提交）
+<type>(<插件名>): <subject>     # 仅当改动位于 plugin/<插件名>/ 内
 ```
 
-> **各端为独立 git 仓库，仓库内提交默认不带 scope。** `backend/`、`template/admin/`、`template/web/`、`template/install/`、`docs/`、`skills/` 等各自是独立仓库，因此在该仓库内提交时无需再写 `(backend)` / `(admin)` / `(docs)` 等 —— 仓库本身已定位模块，重复标注属于冗余。
-> 仅当确属**跨仓库的提交**（极少，例如根级聚合提交或外部消费方需要按模块区分）才允许 scope，且必须为小写模块名，见下表。
+> **backend 为单体仓库**：`app/`、`config/`、`core/`、`resource/`、`tests/`、根文件等常规改动**一律不带 scope**。
+> **唯一例外是 `plugin/`**：改动位于 `plugin/<插件名>/` 内时，scope 必须为插件目录名（小写），如 `feat(cms):`、`fix(pay):`。
+> 禁止使用 `backend`、`admin`、`docs`、`project` 等仓库/模块级 scope。
+> 多个插件各自改动拆成多笔提交，每笔 scope 对应各自插件。
 
-## scope 模块映射（仅跨仓库提交时使用）
+## plugin scope 对照（仅 plugin/ 内改动使用）
 
-| scope | 对应范围 |
-|-------|---------|
-| `backend` | `backend/` 后端 PHP 仓库 |
-| `admin` | `template/admin/` Vben 后台仓库 |
-| `web` | `template/web/` Nuxt 后台仓库 |
-| `install` | `template/install/` 安装向导仓库 |
-| `docs` | `docs/` 根目录文档仓库 |
-| `project` | 仓库级（根 README、skills、CI） |
-| `lint` | Lint / 格式化配置 |
-| `ci` | CI 配置 |
-| `deploy` | 部署相关 |
-| `other` | 其他 |
+| scope | 插件 |
+|-------|------|
+| `cms` | CMS 内容管理 |
+| `codegen` | 代码生成 |
+| `demo` | 示例插件 |
+| `logviewer` | 日志查看 |
+| `pay` | 支付 |
+| `portal` | 门户 |
+| `roport` | 报表 |
+| `workflow` | 工作流 |
+
+> 新增插件时直接使用其目录名作为 scope，无需更新本表（目录名即 scope）。
 
 ## type 枚举
 
@@ -56,12 +60,14 @@ globs:
 
 - 使用**简体中文**祈使句，不超过 50 字。
 - 清晰描述「做了什么」，不含句号。
-- 一次提交只做一类事，跨模块/跨类型改动**拆成多次提交**。
+- 一次提交只做一类事，跨插件/跨类型改动**拆成多次提交**。
 
-## 示例（正确，仓库内提交无 scope）
+## 示例（正确）
 
 ```
-feat: 新增会员积分管理页面
+feat(cms): 新增内容模型与栏目管理        # plugin/cms/ 内改动
+fix(demo): 移除路由模板未使用的导入      # plugin/demo/ 内改动
+feat: 新增会员积分管理页面              # app/ 等常规改动，无 scope
 fix: 修复租户列表分页错位问题
 refactor: 重构菜单服务查询逻辑
 chore: 升级 webman 框架到 2.2
@@ -72,7 +78,9 @@ revert: 回退菜单 is_tab 字段迁移
 ## 示例（错误）
 
 ```
-fix(backend): 修复 xxx      # 各端独立仓库内不应加 scope（仓库已标识模块）
+feat: 新增栏目管理           # plugin/cms/ 内改动漏加 scope，应为 feat(cms)
+fix(backend): 修复 xxx       # 禁止仓库级 scope
+chore(cms): 调整根 composer  # 非 plugin 改动不应带 scope
 fix: 修复 method_exists 报错。  # 不应有句号
 Feat: 新增功能               # type 必须小写
 ```
@@ -115,7 +123,7 @@ git commit -F .git/.msg.txt
 
 1. `git status --short` 看清本次改动文件。
 2. `git --no-pager log --oneline -5` 看最近提交风格，避免重复/冲突。
-3. 按 type 拆分：跨类型改动拆多次提交。
+3. 按 scope / type 拆分：不同插件拆多笔，跨类型拆多笔；**plugin 内改动必须带插件名 scope，其余不带**。
 4. 每个提交：`write_to_file` 写 UTF-8 临时 message → `git add <文件>` → `git commit -F 文件` → 删除临时文件。
-5. `git --no-pager log --oneline -3` 复核中文无乱码、scope 无多余。
+5. `git --no-pager log --oneline -3` 复核中文无乱码、scope 用法正确（仅 plugin 改动带插件名 scope）。
 6. **不主动 `git push`**，除非用户明确要求。

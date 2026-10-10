@@ -17,9 +17,10 @@ globs:
 
 ## 提交信息格式
 ```
-<type>(<scope>): <subject>
+<type>: <subject>                # 默认无 scope
+<type>(<插件名>): <subject>       # 仅 plugin/<插件名>/ 内改动（backend 单体仓库唯一例外）
 ```
-type 枚举见 `cross-commit-convention`，scope 用法见同技能。
+type 枚举与 scope 规则详见 `cross-commit-convention`。
 
 ## 分支命名建议
 - `feat/xxx`、`fix/xxx`、`refactor/xxx`、`chore/xxx`、`release/x.y.z`

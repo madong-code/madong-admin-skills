@@ -117,7 +117,7 @@ skills/
 │   └── install/                  # 安装向导（轻量 Element Plus 应用）
 └── cross/                        # 跨层规范
     ├── git-convention/           # Git 提交规范（lefthook + commitlint + czg）
-    ├── commit-convention/        # 多仓库提交信息格式（scope 用法）
+    ├── commit-convention/        # 提交信息格式（仅 plugin 带插件名 scope）
     ├── lint-format/              # Lint/Format（oxlint + eslint + stylelint + oxfmt）
     ├── database/                 # 数据库设计规范（表 / 字段 / 迁移）
     └── api-convention/           # 前后端 API 对接规范（所有前端共用契约）
@@ -218,9 +218,10 @@ api:       Controller → Base(BaseController)          [app/api/controller/]
 ```
 基类均位于 `core/foundation/base/`（`core\foundation\base` 命名空间）。
 
-### Git 提交规范
+### Git 提交规范（backend 单体仓库）
 ```
-<type>(<scope>): <subject>
+<type>: <subject>               # 默认无 scope
+<type>(<插件名>): <subject>      # 仅 plugin/<插件名>/ 内改动
 ```
 | type | 说明 |
 |------|------|
@@ -236,21 +237,13 @@ api:       Controller → Base(BaseController)          [app/api/controller/]
 | `types` | 类型定义变更 |
 | `release` | 发版 |
 
-| scope | 说明 |
-|-------|------|
-| `backend` | 后端 |
-| `admin` | Vben 后台前端 |
-| `web` | Nuxt 后台前端 |
-| `install` | 安装向导前端 |
-| `project` | 项目级 |
-| `lint` | Lint 配置 |
-| `ci` | CI 配置 |
-| `deploy` | 部署 |
-| `other` | 其他 |
+scope = 插件目录名（小写），仅 `plugin/` 内改动使用，如 `cms`、`pay`、`workflow`；其余改动一律不带 scope。
 
 ```
-feat(admin): 新增会员积分管理页面
-fix(web): 修复租户列表分页问题
-refactor(backend): 重构菜单服务的查询逻辑
-chore(backend): 升级 webman 框架到 2.2
+feat(cms): 新增内容模型与栏目管理
+fix(pay): 修复回调重复验签问题
+feat: 新增会员积分管理页面
+fix: 修复租户列表分页问题
+refactor: 重构菜单服务的查询逻辑
+chore: 升级 webman 框架到 2.2
 ```
