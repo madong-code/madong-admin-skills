@@ -1,6 +1,21 @@
-# Madong SaaS Skills — Project AI Skill Library (MDAdmin Standard Edition)
+<div align="center">
 
-Help AI understand your project conventions. Covers three domains — backend, front-end and cross-cutting — and distributes to various AI editors with one command.
+<img src="https://raw.githubusercontent.com/madong-code/madong-admin/main/public/logo.png" alt="Madong Logo" width="120" />
+
+# Madong SaaS Skills
+
+Project AI skill library (MDAdmin Standard Edition) — help AI understand your project conventions
+
+[![Version](https://img.shields.io/badge/madong-v5.1.0-2488C9)](https://github.com/madong-code/madong-admin)
+[![Skills](https://img.shields.io/badge/Domains-backend%20%C2%B7%20frontend%20%C2%B7%20cross-7C3AED)](#choose-by-scenario)
+[![AI Editors](https://img.shields.io/badge/AI%20editors-11-10B981)](#quick-start)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+
+[中文](./README.md) | **English**
+
+</div>
+
+Covers three domains — backend, front-end and cross-cutting — and distributes to various AI editors with one command.
 
 > Target version: the `madong v5.1.0` refactored standard-edition repository
 > - Backend: `backend/` (PHP 8.2 + Webman 2.2 + Laravel Eloquent)

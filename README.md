@@ -1,6 +1,21 @@
-# Madong SaaS Skills — 项目 AI 技能库 (MDAdmin 标准版)
+<div align="center">
 
-让 AI 理解你的项目规范。覆盖后端、前端、跨层三大领域，一键分发到各 AI 编辑器。
+<img src="https://raw.githubusercontent.com/madong-code/madong-admin/main/public/logo.png" alt="Madong Logo" width="120" />
+
+# Madong SaaS Skills
+
+项目 AI 技能库（MDAdmin 标准版）· 让 AI 理解你的项目规范
+
+[![Version](https://img.shields.io/badge/madong-v5.1.0-2488C9)](https://github.com/madong-code/madong-admin)
+[![Skills](https://img.shields.io/badge/领域-后端%20·%20前端%20·%20跨端-7C3AED)](#按场景选择)
+[![AI Editors](https://img.shields.io/badge/AI%20编辑器-11-10B981)](#快速开始)
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
+
+**中文** | [English](./README.en.md)
+
+</div>
+
+覆盖后端、前端、跨层三大领域，一键分发到各 AI 编辑器。
 
 > 适用版本：`madong v5.1.0` 重构后的标准版仓库
 > - 后端：`backend/`（PHP 8.2 + Webman 2.2 + Laravel Eloquent）
